@@ -494,7 +494,7 @@ const EXCHANGE_SUFFIX_CURRENCY = {
 const ALLOC_COLORS = ["#5ac8ff","#3b82f6","#2ecc71","#f5a623","#ff5c5c","#a855f7","#14b8a6","#f472b6","#84cc16","#eab308"];
 
 /* ===================== State / Storage ===================== */
-const APP_VERSION = "1.3"; // bump by +0.1 on every push to main
+const APP_VERSION = "1.4"; // bump by +0.1 on every push to main
 let DB = loadDB();
 let quoteCache = {};   // symbol -> {price, prevClose, currency, time}
 let fxCache = {};      // "FROM_TO" -> rate
@@ -765,6 +765,7 @@ async function renderOverview(){
           <div class="holding-mid">
             <div>${h.quantity.toLocaleString(undefined,{maximumFractionDigits:4})} sh</div>
             <div>avg ${fmtMoney(h.avgCost, h.currency)}</div>
+            <div>now ${fmtMoney(h.price, h.currency)}</div>
           </div>
           <div class="holding-right">
             <div class="mv">${fmtMoney(h.marketValue, h.currency)}</div>
