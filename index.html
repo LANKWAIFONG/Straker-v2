@@ -326,6 +326,7 @@ canvas#allocChart{width:100%;max-width:220px;display:block;margin:0 auto;}
         <div class="section-title">About</div>
         <div class="card helptext">
           Straker is a self-contained portfolio tracker. All data is stored locally on this device (localStorage) — nothing is sent to any server except live price/news requests to Yahoo Finance (via your configured proxy). Add this page to your iOS Home Screen (Share → Add to Home Screen) for an app-like experience.
+          <div style="margin-top:10px;color:var(--sub);">Version <span id="appVersion"></span></div>
         </div>
       </div>
     </section>
@@ -491,6 +492,7 @@ const EXCHANGE_SUFFIX_CURRENCY = {
 const ALLOC_COLORS = ["#5ac8ff","#3b82f6","#2ecc71","#f5a623","#ff5c5c","#a855f7","#14b8a6","#f472b6","#84cc16","#eab308"];
 
 /* ===================== State / Storage ===================== */
+const APP_VERSION = "1.2"; // bump by +0.1 on every push to main
 let DB = loadDB();
 let quoteCache = {};   // symbol -> {price, prevClose, currency, time}
 let fxCache = {};      // "FROM_TO" -> rate
@@ -1405,6 +1407,7 @@ function wireEvents(){
 
 /* ===================== Init ===================== */
 function init(){
+  $("#appVersion").textContent = APP_VERSION;
   applyTheme();
   loadSettingsUI();
   wireEvents();
