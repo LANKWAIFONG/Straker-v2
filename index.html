@@ -739,43 +739,50 @@ async function renderOverview(){
     }));
 
     lastHoldingsWithLive = enriched;
-    sortHoldings(enriched);
+    const openHoldings = enriched.filter(h => h.quantity > 1e-9);
+    sortHoldings(openHoldings);
 
-    list.innerHTML = enriched.map(h => {
-      const pct = h.unrealizedPnlPct;
-      const dc = h.dayChangePct;
-      return `<div class="holding" data-ticker="${escapeHtml(h.ticker)}">
-        <div class="holding-left">
-          <div class="tkr">${escapeHtml(h.ticker)}</div>
-          <div class="tkr-name">${escapeHtml(h.name||"")}</div>
-        </div>
-        <div class="holding-mid">
-          <div>${h.quantity.toLocaleString(undefined,{maximumFractionDigits:4})} sh</div>
-          <div>avg ${fmtMoney(h.avgCost, h.currency)}</div>
-        </div>
-        <div class="holding-right">
-          <div class="mv">${fmtMoney(h.marketValue, h.currency)}</div>
-          <div class="pnl-line ${pnlClass(h.unrealizedPnl)}">${fmtMoney(h.unrealizedPnl,h.currency,{showSign:true})} (${fmtPct(pct)})</div>
-          <div class="pnl-line ${pnlClass(dc)}" style="opacity:.75;">today ${fmtPct(dc)}</div>
-        </div>
-      </div>`;
-    }).join("");
+    if(openHoldings.length === 0){
+      list.innerHTML = '<div class="empty-state">All positions closed.<br>Realized P&amp;L is reflected in the summary above.</div>';
+    } else {
+      list.innerHTML = openHoldings.map(h => {
+        const pct = h.unrealizedPnlPct;
+        const dc = h.dayChangePct;
+        return `<div class="holding" data-ticker="${escapeHtml(h.ticker)}">
+          <div class="holding-left">
+            <div class="tkr">${escapeHtml(h.ticker)}</div>
+            <div class="tkr-name">${escapeHtml(h.name||"")}</div>
+          </div>
+          <div class="holding-mid">
+            <div>${h.quantity.toLocaleString(undefined,{maximumFractionDigits:4})} sh</div>
+            <div>avg ${fmtMoney(h.avgCost, h.currency)}</div>
+          </div>
+          <div class="holding-right">
+            <div class="mv">${fmtMoney(h.marketValue, h.currency)}</div>
+            <div class="pnl-line ${pnlClass(h.unrealizedPnl)}">${fmtMoney(h.unrealizedPnl,h.currency,{showSign:true})} (${fmtPct(pct)})</div>
+            <div class="pnl-line ${pnlClass(dc)}" style="opacity:.75;">today ${fmtPct(dc)}</div>
+          </div>
+        </div>`;
+      }).join("");
 
-    list.querySelectorAll(".holding").forEach(el => {
-      el.addEventListener("click", () => openTradeModalForTicker(el.dataset.ticker));
-    });
+      list.querySelectorAll(".holding").forEach(el => {
+        el.addEventListener("click", () => openTradeModalForTicker(el.dataset.ticker));
+      });
+    }
   }
 
   // Aggregate totals
   let totalMarketValue=0, totalCostBasis=0, totalUnrealized=0, totalRealized=0, totalDayChange=0;
-  let havePrices = lastHoldingsWithLive.length>0;
+  const openCount = lastHoldingsWithLive.filter(h => h.quantity > 1e-9).length;
+  let pricedCount = 0;
   for(const h of lastHoldingsWithLive){
-    if(h.marketValueBase!==null) totalMarketValue += h.marketValueBase;
+    if(h.marketValueBase!==null){ totalMarketValue += h.marketValueBase; if(h.quantity > 1e-9) pricedCount++; }
     totalCostBasis += h.totalCostBase;
     if(h.unrealizedPnlBase!==null) totalUnrealized += h.unrealizedPnlBase;
     totalRealized += h.realizedPnlBase;
     if(h.dayChangeAbsBase!==null) totalDayChange += h.dayChangeAbsBase;
   }
+  let havePrices = openCount>0 && pricedCount>0;
 
   let totalCapital = 0;
   for(const c of DB.capitalInjections){
@@ -790,7 +797,7 @@ async function renderOverview(){
   const dayChangePctAgg = (totalMarketValue - totalDayChange) > 0 ? (totalDayChange/(totalMarketValue-totalDayChange))*100 : null;
 
   $("#sumMarketValue").textContent = havePrices ? fmtMoney(totalMarketValue, base) : "—";
-  $("#sumDayChange").innerHTML = havePrices ? `<span class="${pnlClass(totalDayChange)}">${fmtMoney(totalDayChange,base,{showSign:true})} (${fmtPct(dayChangePctAgg)}) today</span>` : "No holdings";
+  $("#sumDayChange").innerHTML = openCount===0 ? "No holdings" : (havePrices ? `<span class="${pnlClass(totalDayChange)}">${fmtMoney(totalDayChange,base,{showSign:true})} (${fmtPct(dayChangePctAgg)}) today</span>` : "Prices unavailable");
 
   $("#sumTotalPnl").innerHTML = `<span class="${pnlClass(totalPnl)}">${fmtMoney(totalPnl, base, {showSign:true})}</span>`;
   $("#sumTotalPnlPct").innerHTML = totalReturnPct!==null ? `<span class="${pnlClass(totalReturnPct)}">${fmtPct(totalReturnPct)} return</span>` : "—";
