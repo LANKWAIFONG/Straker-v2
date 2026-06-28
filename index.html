@@ -494,7 +494,7 @@ const EXCHANGE_SUFFIX_CURRENCY = {
 const ALLOC_COLORS = ["#5ac8ff","#3b82f6","#2ecc71","#f5a623","#ff5c5c","#a855f7","#14b8a6","#f472b6","#84cc16","#eab308"];
 
 /* ===================== State / Storage ===================== */
-const APP_VERSION = "1.4"; // bump by +0.1 on every push to main
+const APP_VERSION = "1.5"; // bump by +0.1 on every push to main
 let DB = loadDB();
 let quoteCache = {};   // symbol -> {price, prevClose, currency, time}
 let fxCache = {};      // "FROM_TO" -> rate
@@ -627,9 +627,21 @@ async function fetchQuote(symbol){
   const result = data && data.chart && data.chart.result && data.chart.result[0];
   if(!result) throw new Error("No data for " + symbol);
   const meta = result.meta;
+  let price = meta.regularMarketPrice;
+  if(price == null){
+    // Market closed / no live tick yet for today -- fall back to the most
+    // recent daily close in the chart range so a price is still shown.
+    const closes = result.indicators && result.indicators.quote && result.indicators.quote[0] && result.indicators.quote[0].close;
+    if(closes){
+      for(let i = closes.length - 1; i >= 0; i--){
+        if(closes[i] != null){ price = closes[i]; break; }
+      }
+    }
+    if(price == null) price = meta.chartPreviousClose ?? meta.previousClose;
+  }
   const q = {
     symbol,
-    price: meta.regularMarketPrice,
+    price,
     prevClose: meta.chartPreviousClose ?? meta.previousClose,
     currency: meta.currency || currencyFromSymbol(symbol),
     exchangeName: meta.exchangeName || "",
